@@ -1,6 +1,7 @@
 #define LGFX_USE_V1
 
 #include <LovyanGFX.hpp>
+#include "ui/ui.h"
 
 class LGFX : public lgfx::LGFX_Device
 {
@@ -120,7 +121,7 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
   uint32_t h = (area->y2 - area->y1 + 1);
   tft.startWrite();
   tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.writePixels((lgfx::rgb565_t *)&color_p->full, w * h);
+  tft.writePixels((lgfx::swap565_t *)&color_p->full, w * h);//rgb565_t *)&color_p->full, w * h);
   tft.endWrite();
   lv_disp_flush_ready(disp);
 }
@@ -167,20 +168,20 @@ void lv_example_get_started_3(void)
     lv_obj_align_to(label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
 }
 
-
+lv_disp_t* dispp;
 void setup() {
   Serial.begin(115200);
 
   tft.begin();
-  tft.setRotation(3);
-  tft.setBrightness(255);
+  tft.setRotation(0);
+  tft.setBrightness(25);
 
   lv_init();
   lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
   static lv_disp_drv_t disp_drv;
   lv_disp_drv_init(&disp_drv);
-  disp_drv.hor_res = screenWidth;
-  disp_drv.ver_res = screenHeight;
+  disp_drv.hor_res = screenHeight;//screenWidth;
+  disp_drv.ver_res = screenWidth;//screenHeight;
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register(&disp_drv);
@@ -190,14 +191,30 @@ void setup() {
   indev_drv.read_cb = my_touch_read;
   lv_indev_drv_register(&indev_drv);
   
+  dispp = lv_disp_get_default();
+  ui_init();
+    //lv_example_get_started_3();
 
-    lv_example_get_started_3();
 }
 
 
+bool lowpower = false;
 void loop() {
   lv_timer_handler();
+  uint inactive_time = lv_disp_get_inactive_time(dispp);
+  if (inactive_time > 10000 && !lowpower)  {
+    lowpower =true;
+    tft.setBrightness(1);
+    tft.powerSaveOn();
+    tft.sleep();
+  }else{
+    lowpower = false;
+    tft.setBrightness(100);//255 is max
+    tft.powerSaveOff();
+    tft.wakeup();
+  }
   delay(5);
+  
 }
 
 

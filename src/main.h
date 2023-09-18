@@ -1,0 +1,1 @@
+extern short this_is_global;
